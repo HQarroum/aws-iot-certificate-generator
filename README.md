@@ -27,7 +27,6 @@ A few components are required as dependencies to this project before using the s
 - The [openssl](https://wiki.openssl.org/index.php/Command_Line_Utilities) command-line tools should be installed on your operating system.
 - The [AWS CLI](https://aws.amazon.com/fr/cli/) must be installed and configured with at least one account.
 - The [mosquitto_pub](https://mosquitto.org/man/mosquitto_pub-1.html) command-line tools to test your generated certificates.
-- The [jq](https://github.com/stedolan/jq) parser will be used when connecting devices to AWS IoT.
 
 ## 🔰 Description
 
