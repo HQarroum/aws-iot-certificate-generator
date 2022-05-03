@@ -4,14 +4,13 @@ set -e
 set -o pipefail
 
 # Variables.
-DIR="$(cd "$(dirname "$0")" && pwd)"
-OUTPUT_DIRECTORY="$DIR"
-ROOT_CERT_URL='https://www.amazontrust.com/repository/AmazonRootCA1.pem'
-ROOT_CERT_NAME='aws-root-cert.pem'
-ROOT_CERT_PATH="$OUTPUT_DIRECTORY/$ROOT_CERT_NAME"
-DEVICE_CERTS_DIRECTORY="$DIR/device-certs"
-CERTIFICATE_NAME="device-certificate"
-THING_NAME="thing-1234"
+DIR=${DIR:-"$(cd "$(dirname "$0")" && pwd)"}
+ROOT_CERT_URL=${ROOT_CERT_URL:-"https://www.amazontrust.com/repository/AmazonRootCA1.pem"}
+ROOT_CERT_NAME="aws-root-cert.pem"
+ROOT_CERT_PATH="$DIR/$ROOT_CERT_NAME"
+DEVICE_CERTS_DIRECTORY=${DEVICE_CERTS_DIRECTORY:-"$DIR/device-certs"}
+CERTIFICATE_NAME=${CERTIFICATE_NAME:-"device-certificate"}
+THING_NAME=${THING_NAME:-"thing-1234"}
 AWS_IOT_ENDPOINT=$(aws iot describe-endpoint --endpoint-type iot:Data-ATS --query endpointAddress --output text)
 
 # The help usage text.
@@ -46,7 +45,7 @@ fi
 # Connecting to AWS IoT using the generated certificates
 # and publishing a message.
 mosquitto_pub -d \
-  --cafile "$ROOT_CERT_NAME" \
+  --cafile "$DIR/$ROOT_CERT_NAME" \
   --cert "$DEVICE_CERTS_DIRECTORY/$CERTIFICATE_NAME.crt" \
   --key "$DEVICE_CERTS_DIRECTORY/$CERTIFICATE_NAME.key" \
   -h "$AWS_IOT_ENDPOINT" \
