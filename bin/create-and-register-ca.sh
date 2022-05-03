@@ -23,13 +23,14 @@ Options :
 # Exports the generated certificate output paths.
 # This function is called each time the `$OUTPUT_DIRECTORY`
 # variable is updated.
+# $1 - the output directory
 function export_file_paths() {
-  CA_CERTIFICATE_PATH="$OUTPUT_DIRECTORY/ca-certificate.pem"
-  CA_CERTIFICATE_SERIAL_PATH="$OUTPUT_DIRECTORY/ca-certificate.srl"
-  CA_PRIVATE_KEY_PATH="$OUTPUT_DIRECTORY/ca-certificate.key"
-  CHALLENGE_CERTIFICATE_PATH="$OUTPUT_DIRECTORY/challenge.crt"
-  CHALLENGE_KEY_PATH="$OUTPUT_DIRECTORY/challenge.key"
-  CHALLENGE_CSR_PATH="$OUTPUT_DIRECTORY/challenge.csr"
+  CA_CERTIFICATE_PATH="$1/ca-certificate.pem"
+  CA_CERTIFICATE_SERIAL_PATH="$1/ca-certificate.srl"
+  CA_PRIVATE_KEY_PATH="$1/ca-certificate.key"
+  CHALLENGE_CERTIFICATE_PATH="$1/challenge.crt"
+  CHALLENGE_KEY_PATH="$1/challenge.key"
+  CHALLENGE_CSR_PATH="$1/challenge.csr"
 }
 
 # Retrieving arguments from the command-line.
@@ -50,7 +51,7 @@ while getopts ":c:o:a:p:e:h" o; do
 done
 
 # Initializing the output file paths.
-export_file_paths
+export_file_paths "$OUTPUT_DIRECTORY"
 
 # Creating the output directory.
 mkdir -p "$OUTPUT_DIRECTORY"

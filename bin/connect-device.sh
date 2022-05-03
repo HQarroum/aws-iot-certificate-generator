@@ -5,8 +5,8 @@ set -o pipefail
 
 # Variables.
 DIR=$(cd "$(dirname "$0")" && pwd)
-ROOT_CERT_URL=${ROOT_CERT_URL:-"https://www.amazontrust.com/repository/AmazonRootCA1.pem"}
-ROOT_CERT_PATH="$DIR/aws-root-cert.pem"
+AWS_IOT_CA_URL=${AWS_IOT_CA_URL:-"https://www.amazontrust.com/repository/AmazonRootCA1.pem"}
+AWS_IOT_CA_PATH="$DIR/aws-root-cert.pem"
 CERTIFICATE_PATH="$DIR/device-certs/device-certificate.crt"
 PRIVATE_KEY_PATH="$DIR/device-certs/device-certificate.key"
 THING_NAME="thing-1234"
@@ -43,9 +43,9 @@ fi
 # If it doesn't already exist, we download the AWS root certificate required
 # to create a connection to AWS IoT, and for the local TLS agent to acknowledge
 # that the remote platform is indeed AWS IoT, and not a man in the middle.
-if [ ! -f "$ROOT_CERT_PATH" ]; then
+if [ ! -f "$AWS_IOT_CA_PATH" ]; then
   echo "[+] AWS Root Certificate not detected, downloading it ..."
-  wget "$ROOT_CERT_URL" -O "$ROOT_CERT_PATH" -o /dev/null
+  wget "$AWS_IOT_CA_URL" -O "$AWS_IOT_CA_PATH" -o /dev/null
   echo "[+] The AWS Root certificate has been successfully saved locally"
 fi
 
@@ -53,7 +53,7 @@ fi
 # and publishing a message.
 function connect_device() {
   mosquitto_pub -d \
-    --cafile "$ROOT_CERT_PATH" \
+    --cafile "$AWS_IOT_CA_PATH" \
     --cert "$CERTIFICATE_PATH" \
     --key "$PRIVATE_KEY_PATH" \
     --host "$AWS_IOT_ENDPOINT" \
