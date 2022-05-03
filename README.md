@@ -6,7 +6,7 @@
 # aws-iot-certificate-generator
 > A X.509 Root CA and device certificate generator for use with AWS IoT Just-In-Time-Registration.
 
-[![DeepSource](https://deepsource.io/gh/HQarroum/aws-iot-certificate-generator.svg/?label=active+issues&show_trend=true&token=5PhfiMSqrajKf7juZAV7Cxbb)](https://deepsource.io/gh/HQarroum/aws-iot-certificate-generator/?ref=repository-badge)
+[![DeepSource](https://deepsource.io/gh/HQarroum/aws-iot-certificate-generator.svg/?label=active+issues&show_trend=true)](https://deepsource.io/gh/HQarroum/aws-iot-certificate-generator/?ref=repository-badge)
 
 Current version: **1.0.0**
 
@@ -14,7 +14,6 @@ Current version: **1.0.0**
 
 - [Installation](#-install)
 - [Pre-requisites](#-pre-requisites)
-- [Metrics](#-metrics)
 - [Description](#-description)
 - [Command-line tools](#-command-line-tools)
 - [See also](#-see-also)
@@ -23,19 +22,19 @@ Current version: **1.0.0**
 
 A few components are required as dependencies to this project before using the scripts it contains :
 
-- A UNIX environment such as MacOS or Linux.
-- The [openssl](https://wiki.openssl.org/index.php/Command_Line_Utilities) command-line tools should be installed on your operating system.
-- The [AWS CLI](https://aws.amazon.com/fr/cli/) must be installed and configured with at least one account.
-- The [mosquitto_pub](https://mosquitto.org/man/mosquitto_pub-1.html) command-line tools to test your generated certificates.
+- An environment supporting Bash.
+- The [openssl](https://wiki.openssl.org/index.php/Command_Line_Utilities) command-line tools must be installed on your operating system or Docker container.
+- The [AWS CLI](https://aws.amazon.com/cli/) must be installed and configured with at least one account.
+- The [mosquitto_pub](https://mosquitto.org/man/mosquitto_pub-1.html) command-line tool is required to test your generated certificates and publish a message to an MQTT topic.
 
 ## 🔰 Description
 
-This project can help you understand the creation of a custom certificate authority (CA) and device certificates required as part of the [Just In Time Registration (JITR)](https://aws.amazon.com/fr/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/) process and will assist you in performing yourself the following tasks on your AWS account :
+This repository contains tools aiming at helping understand the creation of a custom certificate authority (CA) and device certificates required as part of the AWS IoT [Just In Time Registration (JITR)](https://aws.amazon.com/fr/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/) process and is a good basis to assist you in performing the following tasks on your AWS account :
 
 - Creating your own custom [Certificate of Authority (CA)](https://en.wikipedia.org/wiki/Root_certificate).
 - Registering your CA on AWS IoT.
 - Creating devices certificates offline and connecting using those certificates to AWS IoT.
-- Modifying the attributes of your device certificates.
+- Customizing the attributes of your device certificates.
 
 ## 📟 Command-line tools
 
@@ -43,7 +42,7 @@ This project features a few command-line tools in the `bin` directory that will 
 
 - [`create-and-register-ca.sh`](bin/create-and-register-ca.sh) starts the process of creating an X.509 Root Certificate of Authority and will register the newly created Root CA on AWS IoT, activate it, and enable its auto registration status.
 - [`create-device-certificate.sh`](bin/create-device-certificate.sh) uses a previously created Root Certificate of Authority to sign a new device certificate which is ready to be provisionned on a device.
-- [`connect-device.sh`](bin/connect-device.sh) uses a the created device certificate to connect to AWS IoT and publish a message on a topic.
+- [`connect-device.sh`](bin/connect-device.sh) uses the created device certificate to connect to AWS IoT and publish a message on a topic.
 
 ### Creating a new CA
 
@@ -56,9 +55,9 @@ chmod +x create-and-register-ca.sh
 ./create-and-register-ca.sh
 ```
 
-> You will be prompted to confirm whether you want to register the newly created Root CA on your account using the AWS CLI, confirm the prompt.
+> You will be prompted to confirm whether you want to export the newly created CA on AWS Parameter Store for secure storage using the AWS CLI, you can choose to proceed or not.
 
-Head to the [AWS IoT CA console](https://console.aws.amazon.com/iot/home#/cacertificatehub) in your browser and confirm that the new CA has been registered.
+Head to the [AWS IoT CA console](https://console.aws.amazon.com/iot/home#/cacertificatehub) in your browser and confirm that the new CA has been registered and activated.
 
 <p align="center">
   <img src="assets/certificate-hub.png" />
@@ -93,7 +92,7 @@ After having executed this command, it will fail with an error indicating that t
   <img src="assets/certificate.png" />
 </p>
 
-The AWS IoT platform automatically adds a device certificate signed by a registered custom CA in the `status.pendingActivation` state when the device connects for the first time. You will have to activate the certificate and attach to it a policy allowing the bash script to publish a message on the `${thing-name}/telemetry` topic.
+The AWS IoT platform automatically adds a device certificate signed by a registered custom CA in the `pendingActivation` state when the device connects for the first time. You will have to activate the certificate in the console or via the API and attach to it an AWS IoT Policy allowing the MQTT client to publish a message on the `${thing-name}/telemetry` topic.
 
 ### Modifying certificate attributes
 

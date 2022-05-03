@@ -5,29 +5,42 @@ set -o pipefail
 
 # Variables.
 DIR="$(cd "$(dirname "$0")" && pwd)"
-CACERT_NAME='ca-certificate'
-PRIVATE_KEY_VERIFICATION='private-key-registration'
-OPENSSL_CONFIG="$DIR/config/openssl-ca.conf"
 OUTPUT_DIRECTORY="$DIR/ca-certs"
 CA_EXPIRY_IN_DAYS=365
-CERTIFICATE_PARAMETER='/iot/ca/certificate'
-PRIVATE_KEY_PARAMETER='/iot/ca/private-key'
+CERTIFICATE_PARAMETER="/iot/ca/certificate"
+PRIVATE_KEY_PARAMETER="/iot/ca/private-key"
+OPENSSL_CONFIG_PATH="$DIR/config/openssl-ca.conf"
 
 # The help usage text.
 USAGE="Generates a new custom CA compatible with the AWS IoT Just-In-Time-Registration.
 Options :
-    -o  (Optional) - the path to the OpenSSL config file to use to generate a new Root CA
-    -d  (Optional) - the path of the directory in which the CA certificates will be stored
-    -c  (Optional) - the name of the AWS Parameter Store for storing the CA certificate
+    -c  (Optional) - the path to the OpenSSL config file to use to generate a new Root CA
+    -o  (Optional) - the output path of the directory in which the CA certificates will be stored
+    -a  (Optional) - the name of the AWS Parameter Store for storing the CA certificate
     -p  (Optional) - the name of the AWS Parameter Store for storing the CA private key
     -e  (Optional) - the number of days the CA certificate will be valid for"
 
+# Exports the generated certificate output paths.
+# This function is called at the beginning
+# and called if `$OUTPUT_DIRECTORY` is updated.
+function export_file_paths() {
+  CA_CERTIFICATE_PATH="$OUTPUT_DIRECTORY/ca-certificate.pem"
+  CA_CERTIFICATE_SERIAL_PATH="$OUTPUT_DIRECTORY/ca-certificate.srl"
+  CA_PRIVATE_KEY_PATH="$OUTPUT_DIRECTORY/ca-certificate.key"
+  CHALLENGE_CERTIFICATE_PATH="$OUTPUT_DIRECTORY/challenge.crt"
+  CHALLENGE_KEY_PATH="$OUTPUT_DIRECTORY/challenge.key"
+  CHALLENGE_CSR_PATH="$OUTPUT_DIRECTORY/challenge.csr"
+}
+
+# Initializing the output file paths.
+export_file_paths
+
 # Retrieving arguments from the command-line.
-while getopts ":o:d:c:p:e:h" o; do
+while getopts ":c:o:a:p:e:h" o; do
   case "${o}" in
-    o) OPENSSL_CONFIG=${OPTARG} ;;
-    d) OUTPUT_DIRECTORY=${OPTARG} ;;
-    c) CERTIFICATE_PARAMETER=${OPTARG} ;;
+    c) OPENSSL_CONFIG_PATH=${OPTARG} ;;
+    o) OUTPUT_DIRECTORY=${OPTARG} && export_file_paths ;;
+    a) CERTIFICATE_PARAMETER=${OPTARG} ;;
     p) PRIVATE_KEY_PARAMETER=${OPTARG} ;;
     e) CA_EXPIRY_IN_DAYS=${OPTARG} ;;
     h) echo "$USAGE"
@@ -45,17 +58,17 @@ mkdir -p "$OUTPUT_DIRECTORY"
 # Creates a new X.509 private and public key
 # and stores them in the output directory.
 function create_ca_certificates() {
-  openssl genrsa -out "$OUTPUT_DIRECTORY/$CACERT_NAME.key" 2048 2>/dev/null
+  openssl genrsa -out "$CA_PRIVATE_KEY_PATH" 2048 2>/dev/null
   openssl req \
-    -config "$OPENSSL_CONFIG" \
+    -config "$OPENSSL_CONFIG_PATH" \
     -x509 \
     -new \
     -nodes \
-    -key "$OUTPUT_DIRECTORY/$CACERT_NAME.key" \
+    -key "$CA_PRIVATE_KEY_PATH" \
     -sha256 \
     -days "$CA_EXPIRY_IN_DAYS" \
-    -out "$OUTPUT_DIRECTORY/$CACERT_NAME.pem"
-  echo "[+] Created new X.509 CA certificate ($CACERT_NAME.pem)"
+    -out "$CA_CERTIFICATE_PATH"
+  echo "[+] Created new X.509 CA certificate ($CA_CERTIFICATE_PATH)"
 }
 
 # Generates a registration code from AWS IoT
@@ -64,21 +77,36 @@ function create_csr() {
   # Retrieves an AWS IoT registration code using the AWS CLI.
   local code=$(aws iot get-registration-code --query 'registrationCode' --output text)
   # Generate a new private key.
-  openssl genrsa -out "$OUTPUT_DIRECTORY/$PRIVATE_KEY_VERIFICATION.key" 2048 2>/dev/null
+  openssl genrsa -out "$CHALLENGE_KEY_PATH" 2048 2>/dev/null
   # Generate a new CSR using the private key and the registration code.
   openssl req \
     -new \
-    -key "$OUTPUT_DIRECTORY/$PRIVATE_KEY_VERIFICATION.key" \
+    -key "$CHALLENGE_KEY_PATH" \
     -subj "/CN=$code" \
-    -out "$OUTPUT_DIRECTORY/$PRIVATE_KEY_VERIFICATION.csr"
-  echo "[+] Created a CSR using the registration code ($PRIVATE_KEY_VERIFICATION.csr)"
+    -out "$CHALLENGE_CSR_PATH"
+  echo "[+] Created a CSR using the registration code"
+}
+
+# Creates a new certificate using the generated CSR.
+function create_csr_challenge() {
+  openssl x509 \
+    -req \
+    -in "$CHALLENGE_CSR_PATH" \
+    -CA "$CA_CERTIFICATE_PATH" \
+    -CAkey "$CA_PRIVATE_KEY_PATH" \
+    -CAcreateserial \
+    -CAserial "$CA_CERTIFICATE_SERIAL_PATH" \
+    -out "$CHALLENGE_CERTIFICATE_PATH" \
+    -days "$CA_EXPIRY_IN_DAYS" \
+    -sha256
+  echo "[+] Created a new X.509 certificate using the CSR and the CA certificate ($PRIVATE_KEY_VERIFICATION.crt)"
 }
 
 # Registers the generated certificate on AWS IoT.
 function register_ca() {
   CERTIFICATE_ID=$(aws iot register-ca-certificate \
-    --ca-certificate "file://$OUTPUT_DIRECTORY/$CACERT_NAME.pem" \
-    --verification-certificate "file://$OUTPUT_DIRECTORY/$PRIVATE_KEY_VERIFICATION.crt" \
+    --ca-certificate "file://$CA_CERTIFICATE_PATH" \
+    --verification-certificate "file://$CHALLENGE_CERTIFICATE_PATH" \
     --set-as-active \
     --allow-auto-registration \
     --query 'certificateId' \
@@ -86,32 +114,21 @@ function register_ca() {
   echo "[+] The CA certificate has been registered with the ID: $CERTIFICATE_ID"
 }
 
-# Creates a new certificate using the generated CSR.
-function create_csr_challenge() {
-  openssl x509 \
-    -req \
-    -in "$OUTPUT_DIRECTORY/$PRIVATE_KEY_VERIFICATION.csr" \
-    -CA "$OUTPUT_DIRECTORY/$CACERT_NAME.pem" \
-    -CAkey "$OUTPUT_DIRECTORY/$CACERT_NAME.key" \
-    -CAcreateserial \
-    -CAserial "$OUTPUT_DIRECTORY/$CACERT_NAME.srl" \
-    -out "$OUTPUT_DIRECTORY/$PRIVATE_KEY_VERIFICATION.crt" \
-    -days "$CA_EXPIRY_IN_DAYS" \
-    -sha256
-  echo "[+] Created a new X.509 certificate using the CSR and the CA certificate ($PRIVATE_KEY_VERIFICATION.crt)"
-}
-
 # Exports the generated CA certificate and private key
 # to the AWS Parameter Store.
 function export_ca_certificates() {
-  local ca_certificate=$(cat "$OUTPUT_DIRECTORY/$CACERT_NAME.pem")
-  local ca_private_key=$(cat "$OUTPUT_DIRECTORY/$CACERT_NAME.key")
+  local ca_certificate=$(cat "$CA_CERTIFICATE_PATH")
+  local ca_private_key=$(cat "$CA_PRIVATE_KEY_PATH")
+
+  # Exporting the CA certificate content to AWS SSM.
   aws ssm put-parameter \
     --name "$CERTIFICATE_PARAMETER/$CERTIFICATE_ID" \
     --description "Value of the AWS IoT CA certificate" \
     --value "$ca_certificate" \
     --type SecureString \
     --overwrite > /dev/null
+  
+  # Exporting the CA private key content to AWS SSM.
   aws ssm put-parameter \
     --name "$PRIVATE_KEY_PARAMETER/$CERTIFICATE_ID" \
     --description "Value of the AWS IoT CA private key" \
