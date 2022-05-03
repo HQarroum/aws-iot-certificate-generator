@@ -6,7 +6,7 @@
 # aws-iot-certificate-generator
 > A X.509 Root CA and device certificate generator for use with AWS IoT Just-In-Time-Registration.
 
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](contributing.md)
+[![DeepSource](https://deepsource.io/gh/HQarroum/aws-iot-certificate-generator.svg/?label=active+issues&show_trend=true&token=5PhfiMSqrajKf7juZAV7Cxbb)](https://deepsource.io/gh/HQarroum/aws-iot-certificate-generator/?ref=repository-badge)
 
 Current version: **1.0.0**
 
