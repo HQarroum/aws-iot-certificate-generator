@@ -96,7 +96,7 @@ The AWS IoT platform automatically adds a device certificate signed by a registe
 
 ### Modifying certificate attributes
 
-One of the advantages of generating certificates using your own CA is the ability to customize the attributes of the certificate. For example, you can set the certificate to expire in a specific date or time, or add custom attributes to the certificate. To do so, you can modify the [`./bin/config/openssl-device.conf`](./bin/config/openssl-device.conf) file to modify the default attributes or add new ones.
+One of the advantages of generating certificates using a custom CA is the ability to customize the attributes of the certificate. For example, you can set the certificate to expire at a specific date, or add custom attributes to the certificate. To do so, you can modify the [`openssl-device.conf`](./bin/config/openssl-device.conf) file to modify the default attributes or add new ones.
 
 These new attributes will be encoded in the certificate and protected against tampering by the certificate signature which makes them an ideal place to store static information about your device.
 
@@ -118,3 +118,4 @@ generationQualifier    = light-bulb
 ## 👀 See Also
 
 - The [Just In Time Registration (JITR)](https://aws.amazon.com/fr/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/) blog post.
+- The [AWS IoT Core](https://aws.amazon.com/iot/) documentation.
