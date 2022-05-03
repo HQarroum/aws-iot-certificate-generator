@@ -44,9 +44,9 @@ This project features two command-line tool scripts in the `bin` directory that 
 - [`create-and-register-ca.sh`](bin/create-and-register-ca.sh) starts the process of creating an X.509 Root Certificate of Authority and will register the newly created Root CA on AWS IoT, activate it, and enable its auto registration status.
 - [`create-device-certificate.sh`](bin/create-device-certificate.sh) uses a previously created Root Certificate of Authority to sign a new device certificate which is ready to be provisionned on a device.
 
-### Creating a Root CA
+### Creating a new CA
 
-Head using your terminal to the [`bin`](./bin/) directory which contains the bash scripts we will be using. Next, create a new Root CA by invoking the `create-and-register-ca.sh` script.
+Head using your terminal to the [`bin`](./bin/) directory which contains the bash scripts we will be using. Next, create a new CA by invoking the `create-and-register-ca.sh` script.
 
 ```bash
 # Make the script executable.
@@ -65,7 +65,7 @@ Head to the [AWS IoT CA console](https://console.aws.amazon.com/iot/home#/cacert
 
 ### Connecting your first Thing
 
-The next step is to create a new device certificate signed using the newly created Root CA. This certificate will be created totally offline without requiring Internet or AWS access. To do so, invoke the `create-device-certificate.sh` script.
+The next step is to create a new device certificate signed using the newly created CA. This certificate will be created totally offline without requiring Internet or AWS access. To do so, invoke the `create-device-certificate.sh` script.
 
 ```bash
 # Make the script executable.
@@ -74,32 +74,16 @@ chmod +x create-device-certificate.sh
 ./create-device-certificate.sh
 ```
 
-If the script was successful, you should see the newly created device certificate files in the device-certs directory. Once you are all set up, we'll need to try an MQTT connection to your AWS IoT Core endpoint using the new device certificate.
-This is where the [mosquitto_pub](https://mosquitto.org/man/mosquitto_pub-1.html) command-line tool will be necessary. First, execute the following command in order to retrieve the ATS endpoint associated with your AWS IoT Core endpoint.
+If the script was successful, you should see the newly created device certificate files in the device-certs directory. Once you are all set up, you will need to try an MQTT connection to your AWS IoT Core endpoint using the new device certificate.
+This is where the [mosquitto_pub](https://mosquitto.org/man/mosquitto_pub-1.html) command-line tool will be necessary.
+
+The below command will pick-up the generated device certificate and connect to AWS IoT.
 
 ```bash
-aws iot describe-endpoint --endpoint-type iot:Data-ATS
-```
-
-We will provide this tool all the necessary information in order for it to connect as shown in the below example which is going to :
-
-- Connect to your AWS IoT Core ATS endpoint using the new device certificate.
-- Specifies the MQTT client id as the thing name of the device in order to honor the default IoT policy of the Universal JITR stack.
-- Attempts to publish a message on the `device/${thing-name}/foo`` topic which must be allowed by an IoT policy.
-
-```bash
-export AWS_IOT_ENDPOINT=$(aws iot describe-endpoint --endpoint-type iot:Data-ATS | jq '.endpointAddress' --raw-output)
-
-mosquitto_pub -d \
-  --cafile aws-root-cert.pem \
-  --cert device-certs/device-and-ca-certificate.crt \
-  --key device-certs/device-certificate.key \
-  -h $AWS_IOT_ENDPOINT \
-  -p 8883 \
-  -t device/robot-1234/foo \
-  -i robot-1234 \
-  --tls-version tlsv1.2 \
-  -m "{ \"message\": \"Hello World !\" }"
+# Make the script executable.
+chmod +x connect-device.sh
+# Create a new device certificate.
+./connect-device.sh
 ```
 
 After having executed this command, it will fail with an error indicating that the Connection was lost. This is because the certificate associated with the device is not yet activated on the AWS IoT platform. If you go to the certificate console, you will see a new certificate entry that was automatically added by AWS IoT upon the connection of the device.
@@ -108,9 +92,7 @@ After having executed this command, it will fail with an error indicating that t
   <img src="assets/certificate.png" />
 </p>
 
-The AWS IoT platform adds a device certificate signed by a registered custom Root CA in the status.pendingActivation state when the device connects for the first time. The platform also invokes the lambda function associated with the Just-In-Time-Registration stack to indicate that a new device has been connected. The lambda function will then provision the device registry with a thing, associate it with a policy and if the device is a Greengrass device, will also create a new Greengrass Group before activating the certificate.
-
-> This means that in a Just-In-Time-Registration context, the device should retry the MQTT connection to the AWS IoT platform until it succeeds using an exponential backoff mechanism. When the certificate is activated by the Just-In-Time-Registration lambda function, the state of the certificate will change to Active.
+The AWS IoT platform automatically adds a device certificate signed by a registered custom CA in the `status.pendingActivation` state when the device connects for the first time. You will have to activate the certificate and attach to it a policy allowing the bash script to publish a message on the `${thing-name}/telemetry` topic.
 
 ## 👀 See Also
 
