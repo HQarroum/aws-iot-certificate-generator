@@ -5,7 +5,6 @@ set -o pipefail
 
 # Variables.
 DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT_CA_DIRECTORY="$DIR/ca-certs"
 OPENSSL_CONFIG="$DIR/config/openssl-device.conf"
 OUTPUT_DIRECTORY="$DIR/device-certs"
 CA_CERTIFICATE_PATH="$DIR/ca-certs/ca-certificate.pem"
