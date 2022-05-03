@@ -32,8 +32,8 @@ A few components are required as dependencies to this project before using the s
 
 This project can help you understand the creation of a custom certificate authority (CA) and device certificates required as part of the [Just In Time Registration (JITR)](https://aws.amazon.com/fr/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/) process and will assist you in performing yourself the following tasks on your AWS account :
 
-- Creating your own custom [Root Certificate of Authority (Root CA)](https://en.wikipedia.org/wiki/Root_certificate).
-- Registering your Root CA on AWS IoT.
+- Creating your own custom [Certificate of Authority (CA)](https://en.wikipedia.org/wiki/Root_certificate).
+- Registering your CA on AWS IoT.
 - Creating devices certificates offline and connecting using those certificates to AWS IoT.
 - Modifying the attributes of your device certificates.
 
@@ -94,6 +94,12 @@ After having executed this command, it will fail with an error indicating that t
 </p>
 
 The AWS IoT platform automatically adds a device certificate signed by a registered custom CA in the `status.pendingActivation` state when the device connects for the first time. You will have to activate the certificate and attach to it a policy allowing the bash script to publish a message on the `${thing-name}/telemetry` topic.
+
+### Modifying certificate attributes
+
+One of the advantages of generating certificates using your own CA is that you can customize the attributes of the certificate. For example, you can set the certificate to expire in a specific date or time, or add custom attributes to the certificate. To do so, you can modify the `./bin/config/openssl-device.conf` file to modify the default attributes or add new ones.
+
+These new attributes will be encoded in the certificate and protected against tampering by the certificate signature which makes them an ideal place to store static information about your device.
 
 ## 👀 See Also
 
