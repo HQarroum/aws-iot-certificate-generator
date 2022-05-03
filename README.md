@@ -39,10 +39,11 @@ This project can help you understand the creation of a custom certificate author
 
 ## 📟 Command-line tools
 
-This project features two command-line tool scripts in the `bin` directory that will help you create CAs and certificates :
+This project features a few command-line tools in the `bin` directory that will help you create a new CA, device certificates, and connect to AWS IoT with the generated certificates :
 
 - [`create-and-register-ca.sh`](bin/create-and-register-ca.sh) starts the process of creating an X.509 Root Certificate of Authority and will register the newly created Root CA on AWS IoT, activate it, and enable its auto registration status.
 - [`create-device-certificate.sh`](bin/create-device-certificate.sh) uses a previously created Root Certificate of Authority to sign a new device certificate which is ready to be provisionned on a device.
+- [`connect-device.sh`](bin/connect-device.sh) uses a the created device certificate to connect to AWS IoT and publish a message on a topic.
 
 ### Creating a new CA
 
