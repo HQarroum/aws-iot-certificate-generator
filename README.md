@@ -100,7 +100,7 @@ One of the advantages of generating certificates using your own CA is the abilit
 
 These new attributes will be encoded in the certificate and protected against tampering by the certificate signature which makes them an ideal place to store static information about your device.
 
-```conf
+```ini
 [req_distinguished_name]
 organizationName       = Acme
 organizationalUnitName = Acme
