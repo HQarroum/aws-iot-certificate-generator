@@ -23,13 +23,13 @@ Current version: **1.0.0**
 A few components are required as dependencies to this project before using the scripts it contains :
 
 - An environment supporting Bash.
-- The [openssl](https://wiki.openssl.org/index.php/Command_Line_Utilities) command-line tools must be installed on your operating system or Docker container.
-- The [AWS CLI](https://aws.amazon.com/cli/) must be installed and configured with at least one account.
-- The [mosquitto_pub](https://mosquitto.org/man/mosquitto_pub-1.html) command-line tool is required to test your generated certificates and publish a message to an MQTT topic.
+- The [openssl](https://wiki.openssl.org/index.php/Command_Line_Utilities) command-line tool.
+- The [AWS CLI](https://aws.amazon.com/cli/) must be installed and configured with at least one AWS account.
+- The [mosquitto_pub](https://mosquitto.org/man/mosquitto_pub-1.html) command-line tool is required to test generated certificates and publish messages to an MQTT topic.
 
 ## 🔰 Description
 
-This repository contains tools aiming at helping understand the creation of a custom certificate authority (CA) and device certificates required as part of the AWS IoT [Just In Time Registration (JITR)](https://aws.amazon.com/fr/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/) process and is a good basis to assist you in performing the following tasks on your AWS account :
+This repository contains tools aiming at helping understand the creation of a custom certificate authority (CA) and device certificates required as part of the AWS IoT [Just In Time Registration (JITR)](https://aws.amazon.com/fr/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/) process and will help you perform the following tasks :
 
 - Creating your own custom [Certificate of Authority (CA)](https://en.wikipedia.org/wiki/Root_certificate).
 - Registering your CA on AWS IoT.
