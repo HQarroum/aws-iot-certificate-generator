@@ -14,7 +14,7 @@ THING_NAME=${THING_NAME:-"thing-1234"}
 AWS_IOT_ENDPOINT=$(aws iot describe-endpoint --endpoint-type iot:Data-ATS --query endpointAddress --output text)
 
 # The help usage text.
-USAGE="Initiates an MQTTS connection to AWS IoT using the generated device certificates.
+USAGE="Initiates an MQTTS connection and publishes messages to AWS IoT using the generated device certificates.
 Options :
     -t  (Optional) - the thing name to use
     -d  (Optional) - the path of the directory containing the device certificate"
@@ -42,15 +42,22 @@ if [ ! -f "$ROOT_CERT_PATH" ]; then
   echo "[+] The AWS Root certificate has been successfully saved in the local directory ($ROOT_CERT_PATH)"
 fi
 
-# Connecting to AWS IoT using the generated certificates
+# Connects to AWS IoT using the generated certificates
 # and publishing a message.
-mosquitto_pub -d \
-  --cafile "$DIR/$ROOT_CERT_NAME" \
-  --cert "$DEVICE_CERTS_DIRECTORY/$CERTIFICATE_NAME.crt" \
-  --key "$DEVICE_CERTS_DIRECTORY/$CERTIFICATE_NAME.key" \
-  -h "$AWS_IOT_ENDPOINT" \
-  -p 8883 \
-  -t "$THING_NAME/telemetry" \
-  -i "$THING_NAME" \
-  --tls-version tlsv1.2 \
-  -m "{ \"message\": \"Hello World !\" }"
+function connect_device() {
+  mosquitto_pub -d \
+    --cafile "$DIR/$ROOT_CERT_NAME" \
+    --cert "$DEVICE_CERTS_DIRECTORY/$CERTIFICATE_NAME.crt" \
+    --key "$DEVICE_CERTS_DIRECTORY/$CERTIFICATE_NAME.key" \
+    --host "$AWS_IOT_ENDPOINT" \
+    -p 8883 \
+    -t "$THING_NAME/telemetry" \
+    -i "$THING_NAME" \
+    --tls-version tlsv1.2 \
+    --repeat 10 \
+    --repeat-delay 5 \
+    --message "{ \"message\": \"Hello World !\" }"
+}
+
+# Connecting and publishing a message.
+connect_device
