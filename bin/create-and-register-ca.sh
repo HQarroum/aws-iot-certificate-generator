@@ -21,8 +21,8 @@ Options :
     -e  (Optional) - the number of days the CA certificate will be valid for"
 
 # Exports the generated certificate output paths.
-# This function is called at the beginning
-# and called if `$OUTPUT_DIRECTORY` is updated.
+# This function is called each time the `$OUTPUT_DIRECTORY`
+# variable is updated.
 function export_file_paths() {
   CA_CERTIFICATE_PATH="$OUTPUT_DIRECTORY/ca-certificate.pem"
   CA_CERTIFICATE_SERIAL_PATH="$OUTPUT_DIRECTORY/ca-certificate.srl"
@@ -32,14 +32,11 @@ function export_file_paths() {
   CHALLENGE_CSR_PATH="$OUTPUT_DIRECTORY/challenge.csr"
 }
 
-# Initializing the output file paths.
-export_file_paths
-
 # Retrieving arguments from the command-line.
 while getopts ":c:o:a:p:e:h" o; do
   case "${o}" in
     c) OPENSSL_CONFIG_PATH=${OPTARG} ;;
-    o) OUTPUT_DIRECTORY=${OPTARG} && export_file_paths ;;
+    o) OUTPUT_DIRECTORY=${OPTARG} ;;
     a) CERTIFICATE_PARAMETER=${OPTARG} ;;
     p) PRIVATE_KEY_PARAMETER=${OPTARG} ;;
     e) CA_EXPIRY_IN_DAYS=${OPTARG} ;;
@@ -51,6 +48,9 @@ while getopts ":c:o:a:p:e:h" o; do
        exit 1 ;;
   esac
 done
+
+# Initializing the output file paths.
+export_file_paths
 
 # Creating the output directory.
 mkdir -p "$OUTPUT_DIRECTORY"

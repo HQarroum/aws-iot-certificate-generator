@@ -8,22 +8,34 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_CA_DIRECTORY="$DIR/ca-certs"
 OPENSSL_CONFIG="$DIR/config/openssl-device.conf"
 OUTPUT_DIRECTORY="$DIR/device-certs"
-CACERT_NAME='ca-certificate'
-CERTIFICATE_NAME='device-certificate'
+CA_CERTIFICATE_PATH="$DIR/ca-certs/ca-certificate.pem"
+CA_PRIVATE_KEY_PATH="$DIR/ca-certs/ca-certificate.key"
 
 # The help usage text.
 USAGE="Generates device certificates compatible with the AWS IoT Just-In-Time-Registration process given Root CA certificates.
 Options :
     -c  (Optional) - the path to the OpenSSL config file to use
-    -d  (Optional) - the path of the directory containing the CA certificates
+    -a  (Optional) - the path of the CA certificate
+    -p  (Optional) - the path of the CA private key
     -o  (Optional) - the output directory to write the certificates to"
 
+# Exports the generated certificate output paths.
+# This function is called each time the `$OUTPUT_DIRECTORY`
+# variable is updated.
+function export_file_paths() {
+  DEVICE_CERTIFICATE_PATH="$OUTPUT_DIRECTORY/device-certificate.pem"
+  DEVICE_PRIVATE_KEY_PATH="$OUTPUT_DIRECTORY/device-certificate.key"
+  DEVICE_CERTIFICATE_SERIAL_PATH="$OUTPUT_DIRECTORY/device-certificate.srl"
+  DEVICE_CSR_PATH="$OUTPUT_DIRECTORY/device.csr"
+}
+
 # Retrieving arguments from the command-line.
-while getopts ":d:c:o:h" o; do
+while getopts ":c:a:p:o:h" o; do
   case "${o}" in
     o) OUTPUT_DIRECTORY=${OPTARG} ;;
     c) OPENSSL_CONFIG=${OPTARG} ;;
-    d) ROOT_CA_DIRECTORY=${OPTARG} ;;
+    a) CA_CERTIFICATE_PATH=${OPTARG} ;;
+    p) CA_PRIVATE_KEY_PATH=${OPTARG} ;;
     h) echo "$USAGE"
        exit 0 ;;
    \?) echo "Invalid option: -$OPTARG" >&2
@@ -33,17 +45,14 @@ while getopts ":d:c:o:h" o; do
   esac
 done
 
-# Verifying that the Root CA directory exists.
-if [ ! -d "$ROOT_CA_DIRECTORY" ]; then
-  echo "[!] The Root CA directory ($ROOT_CA_DIRECTORY) does not exist. Did you execute the 'create-and-register-ca.sh' script first to generate a CA ?"
+# Verifying that the CA certificate and private key exists.
+if [ ! -f "$CA_CERTIFICATE_PATH" ] || [ ! -f "$CA_PRIVATE_KEY_PATH" ]; then
+  echo "[!] The CA certificate or the CA private key does not exist, did you run create-and-register-ca.sh ?"
   exit 1
 fi
 
-# Verifying that the Root CA directory contains certificates.
-if [ ! -f "$ROOT_CA_DIRECTORY/$CACERT_NAME.pem" ] || [ ! -f "$ROOT_CA_DIRECTORY/$CACERT_NAME.key" ]; then
-  echo "[!] The Root CA directory ($ROOT_CA_DIRECTORY) does not contain valid Root CA certificates (expected '$ROOT_CA_DIRECTORY/$CACERT_NAME.pem' and '$ROOT_CA_DIRECTORY/$CACERT_NAME.key' to exist)."
-  exit 1
-fi
+# Initializing the output file paths.
+export_file_paths
 
 # Creating the output directory.
 mkdir -p "$OUTPUT_DIRECTORY"
@@ -52,28 +61,28 @@ mkdir -p "$OUTPUT_DIRECTORY"
 # signed by the generated CA and stores them
 # in the output directory.
 function create_device_certificate() {
-  openssl genrsa -out "$OUTPUT_DIRECTORY/$CERTIFICATE_NAME.key" 2048
+  openssl genrsa -out "$DEVICE_PRIVATE_KEY_PATH" 2048
 
   # Creating a CSR.
   openssl req \
     -config "$OPENSSL_CONFIG" \
     -new \
-    -key "$OUTPUT_DIRECTORY/$CERTIFICATE_NAME.key" \
-    -out "$OUTPUT_DIRECTORY/$CERTIFICATE_NAME.csr"
+    -key "$DEVICE_PRIVATE_KEY_PATH" \
+    -out "$DEVICE_CSR_PATH"
 
   # Creating the device certificate using the given Certificate Authority.
   openssl x509 \
     -req \
-    -in "$OUTPUT_DIRECTORY/$CERTIFICATE_NAME.csr" \
-    -CA "$ROOT_CA_DIRECTORY/$CACERT_NAME.pem" \
-    -CAkey "$ROOT_CA_DIRECTORY/$CACERT_NAME.key" \
+    -in "$DEVICE_CSR_PATH" \
+    -CA "$CA_CERTIFICATE_PATH" \
+    -CAkey "$CA_PRIVATE_KEY_PATH" \
     -CAcreateserial \
-    -CAserial "$OUTPUT_DIRECTORY/$CERTIFICATE_NAME.srl" \
-    -out "$OUTPUT_DIRECTORY/$CERTIFICATE_NAME.crt" \
+    -CAserial "$DEVICE_CERTIFICATE_SERIAL_PATH" \
+    -out "$DEVICE_CERTIFICATE_PATH" \
     -days 365 \
     -sha256
 
-  echo "[+] Created a new device certificate ($OUTPUT_DIRECTORY/$CERTIFICATE_NAME.key)"
+  echo "[+] Created a new device certificate ($DEVICE_CERTIFICATE_PATH)."
 }
 
 # Create the device certificate.
