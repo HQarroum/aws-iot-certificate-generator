@@ -7,7 +7,7 @@ set -o pipefail
 DIR=$(cd "$(dirname "$0")" && pwd)
 AWS_IOT_CA_URL=${AWS_IOT_CA_URL:-"https://www.amazontrust.com/repository/AmazonRootCA1.pem"}
 AWS_IOT_CA_PATH="$DIR/aws-root-cert.pem"
-CERTIFICATE_PATH="$DIR/device-certs/device-certificate.crt"
+CERTIFICATE_PATH="$DIR/device-certs/device-certificate.pem"
 PRIVATE_KEY_PATH="$DIR/device-certs/device-certificate.key"
 THING_NAME="thing-1234"
 AWS_IOT_ENDPOINT=$(aws iot describe-endpoint --endpoint-type iot:Data-ATS --query endpointAddress --output text)
